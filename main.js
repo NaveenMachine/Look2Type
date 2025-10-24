@@ -252,7 +252,7 @@ function pressKey(key) {
   console.log(`🧠 Typed: ${val}`);
 }
 
-// === Boot Sequence ===
+
 (async () => {
   await initCamera();
   await loadModel();
