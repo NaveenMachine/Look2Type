@@ -37,3 +37,12 @@ body {
     cursor: pointer;
   }
   
+  button.highlight {
+    background: #00ff88;
+    color: #000;
+    border-color: #00ff88;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+  }
+  
+

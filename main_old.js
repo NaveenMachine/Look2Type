@@ -1,10 +1,10 @@
-console.log("🚀 Look2Type with YOLO Pupil Detection + Typing (Fixed Hit Detection)");
+console.log("🚀 Look2Type with YOLO Pupil Detection");
 
+// === Grab HTML elements ===
 const video = document.getElementById("webcam");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 const typedText = document.getElementById("typed-text");
-const keys = Array.from(document.querySelectorAll("#keyboard button"));
 
 let session = null;
 let modelLoaded = false;
@@ -14,9 +14,8 @@ let dwellStart = 0;
 let frameCount = 0;
 
 const MODEL_SIZE = 384;
-const DWELL_TIME = 1000; // ms dwell to type
 
-// === 1. Initialize Webcam ===
+// === Step 1: Initialize Webcam ===
 async function initCamera() {
   try {
     console.log("🎥 Requesting camera access...");
@@ -35,7 +34,7 @@ async function initCamera() {
   }
 }
 
-// === 2. Load ONNX Model ===
+// === Step 2: Load ONNX Model ===
 async function loadModel() {
   try {
     console.log("📦 Loading ONNX model...");
@@ -48,10 +47,11 @@ async function loadModel() {
   }
 }
 
-// === 3. Draw detections & red gaze ===
+// === Step 3: Draw detections directly over eyes ===
 function drawDetections(output, width, height) {
   let detections = [];
 
+  // Parse ONNX output flexibly
   if (Array.isArray(output)) {
     output.forEach((d) => {
       if (d instanceof Float32Array && d.length >= 6)
@@ -60,12 +60,14 @@ function drawDetections(output, width, height) {
   } else if (output.data) {
     const data = output.data;
     const stride = output.dims?.[2] || 6;
-    for (let i = 0; i < data.length; i += stride)
+    for (let i = 0; i < data.length; i += stride) {
       detections.push(data.slice(i, i + stride));
+    }
   }
 
   if (!detections.length) return;
 
+  // Redraw frame
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(video, 0, 0, width, height);
 
@@ -73,85 +75,58 @@ function drawDetections(output, width, height) {
     sumY = 0,
     validCount = 0;
 
-  detections.forEach(([x, y, w, h, conf]) => {
+  detections.forEach(([x, y, w, h, conf, cls]) => {
     if (conf < 0.3) return;
 
+    // Convert from model coordinates (0–384) to video coordinates
     const xCenter = (x / MODEL_SIZE) * width;
     const yCenter = (y / MODEL_SIZE) * height;
     const boxW = (w / MODEL_SIZE) * width;
     const boxH = (h / MODEL_SIZE) * height;
 
+    // Skip invalid coords
     if (xCenter < 0 || xCenter > width || yCenter < 0 || yCenter > height)
       return;
 
+    // === Draw pupil dot ===
     ctx.beginPath();
     ctx.arc(xCenter, yCenter, 6, 0, 2 * Math.PI);
     ctx.fillStyle = "lime";
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 10;
     ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // === Optional bounding box ===
     ctx.strokeStyle = "rgba(0,255,0,0.3)";
+    ctx.lineWidth = 1.5;
     ctx.strokeRect(xCenter - boxW / 2, yCenter - boxH / 2, boxW, boxH);
+
+    // === Confidence text ===
+    ctx.fillStyle = "white";
+    ctx.font = "13px monospace";
+    ctx.fillText(`conf ${conf.toFixed(2)}`, xCenter + 8, yCenter - 5);
 
     sumX += xCenter;
     sumY += yCenter;
     validCount++;
   });
 
+  // === Draw red averaged gaze dot ===
   if (validCount > 0) {
     const gazeX = sumX / validCount;
     const gazeY = sumY / validCount;
-
     ctx.beginPath();
     ctx.arc(gazeX, gazeY, 8, 0, 2 * Math.PI);
     ctx.fillStyle = "red";
     ctx.fill();
-
     ctx.fillStyle = "white";
     ctx.font = "16px monospace";
     ctx.fillText(`Gaze: (${Math.round(gazeX)}, ${Math.round(gazeY)})`, 10, 25);
-
-    handleGazeTyping(gazeX, gazeY);
   }
 }
 
-// === 4. Gaze Typing Logic ===
-function handleGazeTyping(gazeX, gazeY) {
-  const videoRect = video.getBoundingClientRect();
-  const keyboardRect = document.getElementById("keyboard").getBoundingClientRect();
-
-  // Transform gaze coordinates from video space → page space
-  const pageX = videoRect.left + (gazeX / canvas.width) * videoRect.width;
-  const pageY = videoRect.top + (gazeY / canvas.height) * videoRect.height;
-
-  const hitKey = keys.find((btn) => {
-    const rect = btn.getBoundingClientRect();
-    const dx = pageX - (rect.left + rect.width / 2);
-    const dy = pageY - (rect.top + rect.height / 2);
-    return Math.sqrt(dx * dx + dy * dy) < 80;
-  });
-
-  if (hitKey) {
-    const currentKey = hitKey.textContent.trim();
-    const now = Date.now();
-    if (currentKey === lastKey) {
-      if (now - dwellStart > DWELL_TIME) {
-        typedText.textContent += currentKey;
-        console.log(`⌨️ Typed: ${currentKey}`);
-        dwellStart = now;
-      }
-    } else {
-      lastKey = currentKey;
-      dwellStart = now;
-    }
-
-    keys.forEach((b) => b.classList.remove("highlight"));
-    hitKey.classList.add("highlight");
-  } else {
-    keys.forEach((b) => b.classList.remove("highlight"));
-    lastKey = null;
-  }
-}
-
-// === 5. Detection Loop ===
+// === Step 4: Continuous Detection Loop ===
 async function detect() {
   if (!modelLoaded || !cameraReady) {
     requestAnimationFrame(detect);
@@ -164,21 +139,32 @@ async function detect() {
   const offctx = offscreen.getContext("2d");
   offctx.drawImage(video, 0, 0, MODEL_SIZE, MODEL_SIZE);
 
-  const img = offctx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
-  const data = new Float32Array(MODEL_SIZE * MODEL_SIZE * 3);
+  const imageData = offctx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
+  const float32Data = new Float32Array(MODEL_SIZE * MODEL_SIZE * 3);
   for (let i = 0; i < MODEL_SIZE * MODEL_SIZE; i++) {
-    data[i] = img.data[i * 4] / 255.0;
-    data[i + MODEL_SIZE * MODEL_SIZE] = img.data[i * 4 + 1] / 255.0;
-    data[i + 2 * MODEL_SIZE * MODEL_SIZE] = img.data[i * 4 + 2] / 255.0;
+    float32Data[i] = imageData.data[i * 4] / 255.0;
+    float32Data[i + MODEL_SIZE * MODEL_SIZE] =
+      imageData.data[i * 4 + 1] / 255.0;
+    float32Data[i + 2 * MODEL_SIZE * MODEL_SIZE] =
+      imageData.data[i * 4 + 2] / 255.0;
   }
 
-  const tensor = new ort.Tensor("float32", data, [1, 3, MODEL_SIZE, MODEL_SIZE]);
+  const tensor = new ort.Tensor("float32", float32Data, [
+    1,
+    3,
+    MODEL_SIZE,
+    MODEL_SIZE,
+  ]);
 
   try {
     const result = await session.run({ [session.inputNames[0]]: tensor });
     const output = result[session.outputNames[0]];
     drawDetections(output, canvas.width, canvas.height);
-    if (frameCount < 5) console.log(`📸 Frame ${frameCount++} detections:`, output);
+
+    if (frameCount < 5) {
+      console.log(`📸 Frame ${frameCount} detections:`, output);
+      frameCount++;
+    }
   } catch (err) {
     console.error("❌ Inference error:", err);
   }
@@ -186,7 +172,7 @@ async function detect() {
   requestAnimationFrame(detect);
 }
 
-// === 6. Run ===
+// === Step 5: Run Everything ===
 (async () => {
   await initCamera();
   await loadModel();
