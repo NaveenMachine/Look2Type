@@ -3,27 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Look2Type</title>
+  <title>Locked In</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 </head>
-<body style="background-color:#111; color:white; text-align:center; font-family:sans-serif;">
-  <h1>👀 Look2Type</h1>
-
-  <!-- The text box where typed letters appear -->
-  <p id="typed-text" style="font-size:1.5rem; margin-top:10px;"> </p>
-
-  <!-- Camera & Overlay -->
-  <div id="camera-section" style="position:relative; display:inline-block;">
-    <video id="webcam" autoplay playsinline width="640" height="480" style="border-radius:12px;"></video>
-    <canvas id="overlay" width="640" height="480"
-      style="position:absolute; top:0; left:0; border-radius:12px; pointer-events:none;"></canvas>
+<body>
+  <!-- Centered webcam preview -->
+  <div class="preview" id="preview">
+    <video id="webcam" autoplay playsinline width="480" height="360"></video>
+    <canvas id="overlay" width="480" height="360"></canvas>
   </div>
 
-  <!-- Gaze Keyboard -->
-  <div id="keyboard" style="margin-top:20px;">
-    <button>A</button><button>B</button><button>C</button>
-    <button>D</button><button>E</button><button>F</button>
+  <!-- Calibration Overlay -->
+  <div id="calibration-overlay">
+    <div id="calibration-instruction">
+      Click the "G" key and look at it for 2 seconds to calibrate
+    </div>
+    <div id="thumbs-up" style="display: none;">👍</div>
+  </div>
+
+  <!-- Text display area -->
+  <div class="textContainer" id="textContainer"></div>
+
+  <!-- On-screen keyboard -->
+  <div class="keyboard" id="keyboard">
+    <div class="row">
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+      <div class="key">0</div><div class="key delete">⌫</div>
+    </div>
+    <div class="row">
+      <div class="key">q</div><div class="key">w</div><div class="key">e</div>
+      <div class="key">r</div><div class="key">t</div><div class="key">y</div>
+      <div class="key">u</div><div class="key">i</div><div class="key">o</div><div class="key">p</div>
+    </div>
+    <div class="row">
+      <div class="key">a</div><div class="key">s</div><div class="key">d</div>
+      <div class="key">f</div><div class="key">g</div><div class="key">h</div>
+      <div class="key">j</div><div class="key">k</div><div class="key">l</div>
+    </div>
+    <div class="row">
+      <div class="key">z</div><div class="key">x</div><div class="key">c</div>
+      <div class="key">v</div><div class="key">b</div><div class="key">n</div><div class="key">m</div>
+    </div>
+    <div class="row">
+      <div class="key space">SPACE</div>
+    </div>
   </div>
 
   <script src="main.js"></script>
