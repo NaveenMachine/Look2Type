@@ -1,0 +1,39 @@
+body {
+    background: #111;
+    color: #fff;
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+  
+  #camera-section {
+    position: relative;
+    display: inline-block;
+  }
+  
+  video, canvas {
+    border-radius: 10px;
+  }
+  
+  #overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
+  #keyboard {
+    margin-top: 20px;
+  }
+  
+  button {
+    background: #333;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 18px;
+    margin: 4px;
+    cursor: pointer;
+  }
+  

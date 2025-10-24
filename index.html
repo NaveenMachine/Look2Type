@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Look2Type</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+</head>
+<body style="background-color:#111; color:white; text-align:center; font-family:sans-serif;">
+  <h1>👀 Look2Type</h1>
+  <p id="typed-text" style="font-size:1.5rem; margin-top:10px;"></p>
+
+  <!-- Camera & Overlay -->
+  <div id="camera-section" style="position:relative; display:inline-block;">
+    <video id="webcam" autoplay playsinline width="640" height="480" style="border-radius:12px;"></video>
+    <canvas id="overlay" width="640" height="480"
+      style="position:absolute; top:0; left:0; border-radius:12px; pointer-events:none;"></canvas>
+  </div>
+
+  <!-- Keyboard -->
+  <div id="keyboard" style="margin-top:20px;">
+    <button>A</button><button>B</button><button>C</button>
+    <button>D</button><button>E</button><button>F</button>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
